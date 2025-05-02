@@ -47,25 +47,21 @@ public class ScanPlugin implements FlutterPlugin, MethodCallHandler, ActivityAwa
   private QrCodeAsyncTask task;
 
   @Override
-  public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
-    this.flutterPluginBinding = binding;
+  public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
+    this.flutterPluginBinding = flutterPluginBinding;
   }
 
   private void configChannel(ActivityPluginBinding binding) {
     activity = binding.getActivity();
     channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "chavesgu/scan");
     channel.setMethodCallHandler(this);
-    flutterPluginBinding
-      .getPlatformViewRegistry()
-      .registerViewFactory(
-        "chavesgu/scan_view",
-        new ScanViewFactory(
-          flutterPluginBinding.getBinaryMessenger(),
-          flutterPluginBinding.getApplicationContext(),
-          activity,
-          binding
-        )
-      );
+    flutterPluginBinding.getPlatformViewRegistry()
+            .registerViewFactory("chavesgu/scan_view", new ScanViewFactory(
+                    flutterPluginBinding.getBinaryMessenger(),
+                    flutterPluginBinding.getApplicationContext(),
+                    activity,
+                    binding
+            ));
   }
 
   @Override
@@ -79,8 +75,8 @@ public class ScanPlugin implements FlutterPlugin, MethodCallHandler, ActivityAwa
   }
 
   @Override
-  public void onDetachedFromActivityForConfigChanges() { }
-
+  public void onDetachedFromActivityForConfigChanges() {
+  }
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     this.flutterPluginBinding = null;
@@ -96,7 +92,7 @@ public class ScanPlugin implements FlutterPlugin, MethodCallHandler, ActivityAwa
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     _result = result;
     if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + Build.VERSION.RELEASE);
+      result.success("Android " + android.os.Build.VERSION.RELEASE);
     } else if (call.method.equals("parse")) {
       String path = (String) call.arguments;
       task = new QrCodeAsyncTask(this, path);
@@ -106,6 +102,9 @@ public class ScanPlugin implements FlutterPlugin, MethodCallHandler, ActivityAwa
     }
   }
 
+  /**
+   * AsyncTask 静态内部类，防止内存泄漏
+   */
   static class QrCodeAsyncTask extends AsyncTask<String, Integer, String> {
     private final WeakReference<ScanPlugin> mWeakReference;
     private final String path;
@@ -117,28 +116,25 @@ public class ScanPlugin implements FlutterPlugin, MethodCallHandler, ActivityAwa
 
     @Override
     protected String doInBackground(String... strings) {
-      return QRCodeDecoder.decodeQRCode(
-        mWeakReference.get().flutterPluginBinding.getApplicationContext(),
-        path
-      );
+      // 解析二维码/条码
+      return QRCodeDecoder.decodeQRCode(mWeakReference.get().flutterPluginBinding.getApplicationContext(), path);
     }
 
     @Override
     protected void onPostExecute(String s) {
       super.onPostExecute(s);
-      ScanPlugin plugin = mWeakReference.get();
+      //识别出图片二维码/条码，内容为s
+      ScanPlugin plugin = (ScanPlugin) mWeakReference.get();
       plugin._result.success(s);
       plugin.task.cancel(true);
       plugin.task = null;
-      if (s != null) {
-        Vibrator vib = (Vibrator) plugin.flutterPluginBinding
-            .getApplicationContext()
-            .getSystemService(VIBRATOR_SERVICE);
-        if (vib != null) {
+      if (s!=null) {
+        Vibrator myVib = (Vibrator) plugin.flutterPluginBinding.getApplicationContext().getSystemService(VIBRATOR_SERVICE);
+        if (myVib != null) {
           if (Build.VERSION.SDK_INT >= 26) {
-            vib.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
+            myVib.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE));
           } else {
-            vib.vibrate(50);
+            myVib.vibrate(50);
           }
         }
       }
