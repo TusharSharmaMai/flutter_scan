@@ -24,7 +24,6 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
-    namespace "com.chavesgu.scan"
     compileSdkVersion 29
 
     defaultConfig {
